@@ -43,6 +43,7 @@ function get_post( $post_id ) {
 
 	return isset( $pmm_test_posts[ $post_id ] ) ? (object) $pmm_test_posts[ $post_id ] : null;
 }
+function get_permalink( $post ) { return '/post-' . ( is_object( $post ) ? (int) $post->ID : (int) $post ) . '/'; }
 function get_the_title( $post ) { return $post->post_title; }
 function get_post_type_object( $post_type ) {
 	$labels = array(
@@ -77,6 +78,7 @@ $items = pmm_get_post_picker_items( array( 2258, 9999, 3010 ) );
 pmm_assert_same( 2, count( $items ), 'Post picker should skip missing IDs.' );
 pmm_assert_same( 2258, $items[0]['id'], 'Post picker should preserve the saved ID.' );
 pmm_assert_same( 'Menu Izumi', $items[0]['title'], 'Post picker should expose the post title.' );
+pmm_assert_same( '/post-2258/', $items[0]['permalink'], 'Post picker should expose the permalink for logo link defaults.' );
 pmm_assert_same( 'Page #2258 - Published', $items[0]['meta'], 'Post picker should expose post type, ID, and status.' );
 pmm_assert_same( 'Post #3010 - Draft', $items[1]['meta'], 'Post picker should format post metadata for other post types.' );
 

@@ -55,5 +55,11 @@ pmm_assert_contains( 'is-disabled', $disabled_classes, 'Disabled rule cards shou
 pmm_assert_contains( 'grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.18fr);', $plugin_source, 'Rule layout should let the right column shrink instead of clipping.' );
 pmm_assert_contains( '@media (max-width: 1280px)', $plugin_source, 'Admin UI should collapse before medium WordPress admin screens clip the right column.' );
 pmm_assert_contains( 'grid-template-columns: 22px minmax(120px, 0.9fr) minmax(140px, 1.25fr) minmax(100px, 0.75fr) 76px minmax(76px, 0.55fr) 32px;', $plugin_source, 'Menu item rows should use shrinkable columns.' );
+pmm_assert_contains( 'draggable="true"', $plugin_source, 'Menu item rows should be draggable for manual ordering.' );
+pmm_assert_contains( 'data-pick-logo', $plugin_source, 'Logo URL should include a media library picker button.' );
+pmm_assert_contains( 'pmm_help_tip', $plugin_source, 'Priority and URL path labels should use hover help tooltips.' );
+pmm_assert_contains( 'wp_enqueue_media', $plugin_source, 'Admin page should load the WordPress media library picker.' );
+pmm_assert_contains( 'data-clone-rule', $plugin_source, 'Rule header should include a clone action.' );
+pmm_assert_contains( 'resetClonedRuleConditions', $plugin_source, 'Cloned rules should clear display conditions.' );
 
 echo "pmm-admin-collapse-test passed\n";

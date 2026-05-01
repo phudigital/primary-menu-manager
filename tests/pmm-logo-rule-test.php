@@ -27,6 +27,8 @@ function get_option( $name, $default = false ) {
 
 	return array_key_exists( $name, $pmm_test_options ) ? $pmm_test_options[ $name ] : $default;
 }
+function home_url( $path = '' ) { return '/' . ltrim( (string) $path, '/' ); }
+function get_permalink( $post_id ) { return '/du-an-' . (int) $post_id . '/'; }
 function is_admin() { return false; }
 function wp_doing_ajax() { return false; }
 function get_queried_object_id() {
@@ -83,5 +85,42 @@ pmm_assert_same(
 	$filtered_logo,
 	'Custom logo HTML should receive the rule logo URL and logo link.'
 );
+
+$single_post_rule = pmm_sanitize_rule(
+	array(
+		'enabled'      => '1',
+		'title'        => 'Single Project',
+		'post_ids'     => '42',
+		'logo_enabled' => '1',
+		'logo_url'     => '/uploads/single-logo.svg',
+		'items'        => array(
+			array(
+				'label' => 'Tổng quan',
+				'url'   => '',
+			),
+		),
+	)
+);
+
+pmm_assert_same( '#', $single_post_rule['items'][0]['url'], 'Blank menu item URLs should be saved as #.' );
+pmm_assert_same( '/du-an-42/', $single_post_rule['logo_link_url'], 'Blank logo link should default to the selected post permalink when one post is selected.' );
+
+$multi_post_rule = pmm_sanitize_rule(
+	array(
+		'enabled'      => '1',
+		'title'        => 'Multiple Projects',
+		'post_ids'     => '42,84',
+		'logo_enabled' => '1',
+		'logo_url'     => '/uploads/multiple-logo.svg',
+		'items'        => array(
+			array(
+				'label' => 'Tổng quan',
+				'url'   => '#',
+			),
+		),
+	)
+);
+
+pmm_assert_same( '/', $multi_post_rule['logo_link_url'], 'Blank logo link should default to home when multiple posts are selected.' );
 
 echo "pmm-logo-rule-test passed\n";

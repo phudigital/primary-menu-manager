@@ -8,7 +8,7 @@ Plugin được viết theo hướng dễ mở rộng bằng vibe code: phần r
 
 ## Thông tin
 
-- Version: `1.1.0`
+- Version: `1.2.0`
 - Author: PDL Solutions (Phú Digital)
 - Website: https://pdl.vn
 - License: GPL-2.0-or-later
@@ -47,11 +47,12 @@ Tạo rule theo luồng sau:
 2. Mở rule cần chỉnh, các rule còn lại sẽ tự thu gọn.
 3. Chọn một hoặc nhiều menu location bằng các chip checkbox gọn trong cột thiết lập bên trái.
 4. Nhập điều kiện áp dụng: tìm page/post theo tên hoặc ID để chọn, hoặc nhập URL path.
-5. Thêm danh sách menu item riêng cho landing page ở cột bên phải.
-6. Nếu cần, bật đổi logo/link logo và nhập URL tương ứng.
-7. Lưu cấu hình.
+5. Thêm danh sách menu item riêng cho landing page ở cột bên phải, có thể kéo tay nắm để đổi thứ tự.
+6. Nếu cần, bật đổi logo/link logo, duyệt logo từ Thư viện ảnh hoặc nhập URL tương ứng.
+7. Dùng nút Sao chép trên rule khi muốn nhân bản menu; bản sao sẽ bỏ trống điều kiện hiển thị.
+8. Lưu cấu hình.
 
-URL menu item có thể là URL đầy đủ, đường dẫn tương đối như `/du-an/`, hoặc section ID như `#tong-quan`.
+URL menu item có thể là URL đầy đủ, đường dẫn tương đối như `/du-an/`, hoặc section ID như `#tong-quan`. Nếu để trống, plugin sẽ lưu là `#`.
 
 ## Kiến trúc mở rộng cho vibe code
 

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Primary Menu Manager
  * Description: Manage conditional primary menu items and header logo/link for landing pages without changing the theme header layout or mobile behavior.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: PDL Solutions (Phú Digital)
  * Author URI: https://pdl.vn
  * Plugin URI: https://pdl.vn
@@ -15,12 +15,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'PMM_VERSION', '1.1.0' );
+define( 'PMM_VERSION', '1.2.0' );
 define( 'PMM_OPTION', 'pmm_rules' );
 define( 'PMM_AUTHOR_NAME', 'PDL Solutions (Phú Digital)' );
 define( 'PMM_AUTHOR_URL', 'https://pdl.vn' );
 
 add_action( 'admin_menu', 'pmm_register_admin_page' );
+add_action( 'admin_enqueue_scripts', 'pmm_enqueue_admin_assets' );
 add_action( 'admin_init', 'pmm_handle_save' );
 add_action( 'wp_ajax_pmm_search_posts', 'pmm_ajax_search_posts' );
 add_filter( 'wp_nav_menu_objects', 'pmm_filter_menu_objects', 20, 2 );
@@ -38,6 +39,14 @@ function pmm_register_admin_page() {
 		'primary-menu-manager',
 		'pmm_render_admin_page'
 	);
+}
+
+function pmm_enqueue_admin_assets( $hook_suffix ) {
+	if ( false === strpos( (string) $hook_suffix, 'primary-menu-manager' ) ) {
+		return;
+	}
+
+	wp_enqueue_media();
 }
 
 function pmm_get_rules() {
@@ -91,16 +100,19 @@ function pmm_handle_save() {
 }
 
 function pmm_sanitize_rule( $raw_rule ) {
+	$post_ids = isset( $raw_rule['post_ids'] ) ? pmm_sanitize_id_list( $raw_rule['post_ids'] ) : array();
+	$logo_link_url = isset( $raw_rule['logo_link_url'] ) ? pmm_sanitize_menu_item_url( $raw_rule['logo_link_url'] ) : '';
+
 	$rule = array(
 		'enabled'        => ! empty( $raw_rule['enabled'] ),
 		'title'          => isset( $raw_rule['title'] ) ? sanitize_text_field( $raw_rule['title'] ) : '',
 		'menu_locations' => isset( $raw_rule['menu_locations'] ) ? pmm_sanitize_key_list( $raw_rule['menu_locations'] ) : pmm_sanitize_legacy_menu_locations( $raw_rule ),
 		'priority'       => isset( $raw_rule['priority'] ) ? absint( $raw_rule['priority'] ) : 10,
-		'post_ids'       => isset( $raw_rule['post_ids'] ) ? pmm_sanitize_id_list( $raw_rule['post_ids'] ) : array(),
+		'post_ids'       => $post_ids,
 		'path_contains'  => isset( $raw_rule['path_contains'] ) ? sanitize_text_field( $raw_rule['path_contains'] ) : '',
 		'logo_enabled'   => ! empty( $raw_rule['logo_enabled'] ),
 		'logo_url'       => isset( $raw_rule['logo_url'] ) ? pmm_sanitize_logo_url( $raw_rule['logo_url'] ) : '',
-		'logo_link_url'  => isset( $raw_rule['logo_link_url'] ) ? pmm_sanitize_menu_item_url( $raw_rule['logo_link_url'] ) : '',
+		'logo_link_url'  => $logo_link_url ? $logo_link_url : pmm_get_default_logo_link_url( $post_ids ),
 		'items'          => array(),
 	);
 
@@ -109,13 +121,13 @@ function pmm_sanitize_rule( $raw_rule ) {
 			$label = isset( $raw_item['label'] ) ? sanitize_text_field( $raw_item['label'] ) : '';
 			$url   = isset( $raw_item['url'] ) ? pmm_sanitize_menu_item_url( $raw_item['url'] ) : '';
 
-			if ( '' === $label || '' === $url ) {
+			if ( '' === $label ) {
 				continue;
 			}
 
 			$rule['items'][] = array(
 				'label'  => $label,
-				'url'    => $url,
+				'url'    => $url ? $url : '#',
 				'target' => isset( $raw_item['target'] ) && '_blank' === $raw_item['target'] ? '_blank' : '',
 				'rel'    => isset( $raw_item['rel'] ) ? sanitize_text_field( $raw_item['rel'] ) : '',
 				'class'  => isset( $raw_item['class'] ) ? sanitize_html_class( $raw_item['class'] ) : '',
@@ -127,7 +139,7 @@ function pmm_sanitize_rule( $raw_rule ) {
 }
 
 function pmm_rule_has_content( $rule ) {
-	return ! empty( $rule['title'] ) || ! empty( $rule['items'] ) || ! empty( $rule['logo_url'] ) || ! empty( $rule['logo_link_url'] );
+	return ! empty( $rule['title'] ) || ! empty( $rule['items'] ) || ! empty( $rule['logo_url'] ) || ( ! empty( $rule['logo_enabled'] ) && ! empty( $rule['logo_link_url'] ) );
 }
 
 function pmm_sanitize_id_list( $value ) {
@@ -173,6 +185,24 @@ function pmm_sanitize_logo_url( $url ) {
 	return esc_url_raw( $url );
 }
 
+function pmm_get_default_logo_link_url( $post_ids ) {
+	$post_ids = pmm_sanitize_id_list( $post_ids );
+
+	if ( 1 === count( $post_ids ) ) {
+		$permalink = get_permalink( $post_ids[0] );
+
+		return $permalink ? $permalink : '/';
+	}
+
+	return '/';
+}
+
+function pmm_get_rule_logo_link_url( $rule ) {
+	$logo_link_url = ! empty( $rule['logo_link_url'] ) ? pmm_sanitize_menu_item_url( $rule['logo_link_url'] ) : '';
+
+	return $logo_link_url ? $logo_link_url : pmm_get_default_logo_link_url( $rule['post_ids'] ?? array() );
+}
+
 function pmm_get_searchable_post_types() {
 	$post_types = get_post_types( array( 'public' => true ), 'names' );
 	$post_types = is_array( $post_types ) ? array_values( array_diff( $post_types, array( 'attachment' ) ) ) : array( 'post', 'page' );
@@ -201,9 +231,10 @@ function pmm_format_post_picker_item( $post ) {
 	$post_status_label = pmm_get_post_status_label( $post->post_status );
 
 	return array(
-		'id'    => (int) $post->ID,
-		'title' => get_the_title( $post ),
-		'meta'  => sprintf(
+		'id'        => (int) $post->ID,
+		'title'     => get_the_title( $post ),
+		'permalink' => get_permalink( $post ),
+		'meta'      => sprintf(
 			'%s #%d%s',
 			$post_type_label,
 			(int) $post->ID,
@@ -383,7 +414,7 @@ function pmm_get_current_logo_config() {
 
 		$config = array(
 			'logo_url'      => ! empty( $rule['logo_url'] ) ? pmm_sanitize_logo_url( $rule['logo_url'] ) : '',
-			'logo_link_url' => ! empty( $rule['logo_link_url'] ) ? pmm_sanitize_menu_item_url( $rule['logo_link_url'] ) : '',
+			'logo_link_url' => pmm_get_rule_logo_link_url( $rule ),
 		);
 
 		if ( $config['logo_url'] || $config['logo_link_url'] ) {
@@ -520,7 +551,7 @@ function pmm_render_admin_page() {
 			<div class="notice notice-success is-dismissible"><p>Đã lưu cấu hình primary menu.</p></div>
 		<?php endif; ?>
 
-		<p class="description">Plugin thay menu items và có thể đổi logo/link logo theo rule. Header layout, hiệu ứng và mobile menu vẫn do theme xử lý. Phát triển bởi <a href="<?php echo esc_url( PMM_AUTHOR_URL ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( PMM_AUTHOR_NAME ); ?></a>.</p>
+		<p class="description pmm-description-line">Plugin thay menu items và có thể đổi logo/link logo theo rule. Header layout, hiệu ứng và mobile menu vẫn do theme xử lý. Phát triển bởi <a href="<?php echo esc_url( PMM_AUTHOR_URL ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( PMM_AUTHOR_NAME ); ?></a>.</p>
 
 		<form method="post" action="">
 			<?php wp_nonce_field( 'pmm_save_rules' ); ?>
@@ -559,7 +590,7 @@ function pmm_blank_rule() {
 		'items'          => array(
 			array(
 				'label'  => '',
-				'url'    => '',
+				'url'    => '#',
 				'target' => '',
 				'rel'    => '',
 				'class'  => '',
@@ -580,11 +611,22 @@ function pmm_get_rule_card_classes( $rule ) {
 	return implode( ' ', array_map( 'sanitize_html_class', array_filter( $classes ) ) );
 }
 
+function pmm_help_tip( $text ) {
+	$text = (string) $text;
+
+	return sprintf(
+		'<span class="pmm-help-tip dashicons dashicons-editor-help" tabindex="0" title="%1$s" aria-label="%1$s"></span>',
+		esc_attr( $text )
+	);
+}
+
 function pmm_render_rule_card( $rule, $rule_index, $menu_locations ) {
 	$rule = wp_parse_args( $rule, pmm_blank_rule() );
 	$selected_locations = pmm_get_rule_menu_locations( $rule );
 	$rule_title         = $rule['title'] ? $rule['title'] : 'Menu rule';
 	$location_count     = count( $selected_locations );
+	$logo_link_value    = pmm_get_rule_logo_link_url( $rule );
+	$auto_logo_link     = $logo_link_value === pmm_get_default_logo_link_url( $rule['post_ids'] ) ? '1' : '0';
 	?>
 	<section class="<?php echo esc_attr( pmm_get_rule_card_classes( $rule ) ); ?>" data-rule>
 		<div class="pmm-card__toggle">
@@ -600,6 +642,10 @@ function pmm_render_rule_card( $rule, $rule_index, $menu_locations ) {
 				<span class="dashicons dashicons-arrow-up-alt2" aria-hidden="true"></span>
 			</button>
 			<div class="pmm-card__header-actions">
+				<button type="button" class="button pmm-rule-clone" data-clone-rule>
+					<span class="dashicons dashicons-admin-page" aria-hidden="true"></span>
+					Sao chép
+				</button>
 				<label class="pmm-switch pmm-switch--compact">
 					<input type="checkbox" data-enabled-input name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][enabled]" value="1" <?php checked( ! empty( $rule['enabled'] ) ); ?>>
 					<span>Bật</span>
@@ -625,7 +671,7 @@ function pmm_render_rule_card( $rule, $rule_index, $menu_locations ) {
 								<input type="text" class="regular-text" data-title-input name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][title]" value="<?php echo esc_attr( $rule['title'] ); ?>" placeholder="VD: Menu Landing Blanca City">
 							</label>
 							<label class="pmm-field pmm-field--priority">
-								<span>Ưu tiên</span>
+								<span>Ưu tiên <?php echo pmm_help_tip( 'Số nhỏ chạy trước. Nếu nhiều rule cùng khớp, rule có ưu tiên thấp hơn sẽ được áp dụng trước.' ); ?></span>
 								<input type="number" min="1" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][priority]" value="<?php echo esc_attr( $rule['priority'] ); ?>">
 							</label>
 						</div>
@@ -657,7 +703,7 @@ function pmm_render_rule_card( $rule, $rule_index, $menu_locations ) {
 								<input type="hidden" data-post-ids name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][post_ids]" value="<?php echo esc_attr( implode( ',', (array) $rule['post_ids'] ) ); ?>">
 								<div class="pmm-post-picker__selected" data-selected-posts>
 									<?php foreach ( pmm_get_post_picker_items( $rule['post_ids'] ) as $post_item ) : ?>
-										<span class="pmm-post-chip" data-post-id="<?php echo esc_attr( $post_item['id'] ); ?>">
+										<span class="pmm-post-chip" data-post-id="<?php echo esc_attr( $post_item['id'] ); ?>" data-permalink="<?php echo esc_attr( $post_item['permalink'] ); ?>">
 											<span>
 												<strong><?php echo esc_html( $post_item['title'] ); ?></strong>
 												<small><?php echo esc_html( $post_item['meta'] ); ?></small>
@@ -674,7 +720,7 @@ function pmm_render_rule_card( $rule, $rule_index, $menu_locations ) {
 								</div>
 							</div>
 							<label class="pmm-field">
-								<span>URL path chứa</span>
+								<span>URL path chứa <?php echo pmm_help_tip( 'Nhập một phần đường dẫn, ví dụ /landing/. Rule sẽ khớp khi URL hiện tại chứa chuỗi này.' ); ?></span>
 								<input type="text" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][path_contains]" value="<?php echo esc_attr( $rule['path_contains'] ); ?>" placeholder="/landing/">
 							</label>
 						</div>
@@ -693,11 +739,14 @@ function pmm_render_rule_card( $rule, $rule_index, $menu_locations ) {
 						<div class="pmm-grid">
 							<label class="pmm-field">
 								<span>Logo URL</span>
-								<input type="text" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][logo_url]" value="<?php echo esc_attr( $rule['logo_url'] ); ?>" placeholder="https://.../logo.svg hoặc /uploads/logo.png">
+								<span class="pmm-input-action">
+									<input type="text" data-logo-url name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][logo_url]" value="<?php echo esc_attr( $rule['logo_url'] ); ?>" placeholder="https://.../logo.svg hoặc /uploads/logo.png">
+									<button type="button" class="button pmm-button-secondary" data-pick-logo>Thư viện ảnh</button>
+								</span>
 							</label>
 							<label class="pmm-field">
 								<span>Link logo</span>
-								<input type="text" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][logo_link_url]" value="<?php echo esc_attr( $rule['logo_link_url'] ); ?>" placeholder="/landing-page/">
+								<input type="text" data-logo-link data-auto-logo-link="<?php echo esc_attr( $auto_logo_link ); ?>" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][logo_link_url]" value="<?php echo esc_attr( $logo_link_value ); ?>" placeholder="/">
 							</label>
 						</div>
 					</div>
@@ -731,11 +780,12 @@ function pmm_render_menu_item_row( $rule_index, $item_index, $item ) {
 			'class'  => '',
 		)
 	);
+	$item_url = '' !== trim( (string) $item['url'] ) ? $item['url'] : '#';
 	?>
-	<div class="pmm-item" data-item>
+	<div class="pmm-item" data-item draggable="true">
 		<span class="pmm-item__handle dashicons dashicons-menu" aria-hidden="true"></span>
 		<input type="text" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][items][<?php echo esc_attr( $item_index ); ?>][label]" value="<?php echo esc_attr( $item['label'] ); ?>" placeholder="Tên item">
-		<input type="text" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][items][<?php echo esc_attr( $item_index ); ?>][url]" value="<?php echo esc_attr( $item['url'] ); ?>" placeholder="https://... hoặc /duong-dan/ hoặc #id-section">
+		<input type="text" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][items][<?php echo esc_attr( $item_index ); ?>][url]" value="<?php echo esc_attr( $item_url ); ?>" placeholder="https://... hoặc /duong-dan/ hoặc #id-section">
 		<input type="text" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][items][<?php echo esc_attr( $item_index ); ?>][class]" value="<?php echo esc_attr( $item['class'] ); ?>" placeholder="CSS class">
 		<label class="pmm-mini-check">
 			<input type="checkbox" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][items][<?php echo esc_attr( $item_index ); ?>][target]" value="_blank" <?php checked( '_blank', $item['target'] ); ?>>
@@ -755,13 +805,14 @@ function pmm_render_admin_assets() {
 		.pmm-wrap { --pmm-ink: #172033; --pmm-muted: #687386; --pmm-line: #d9e0ea; --pmm-panel: #ffffff; --pmm-soft: #f6f8fb; --pmm-accent: #2563eb; --pmm-accent-soft: #e8f0ff; --pmm-success: #15803d; --pmm-danger: #b42318; }
 		.pmm-wrap *, .pmm-wrap *::before, .pmm-wrap *::after { box-sizing: border-box; }
 		.pmm-wrap .description { color: var(--pmm-muted); max-width: 880px; }
+		.pmm-wrap .pmm-description-line { max-width: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 		.pmm-card { background: var(--pmm-panel); border: 1px solid var(--pmm-line); border-radius: 8px; box-shadow: 0 14px 36px rgba(23, 32, 51, 0.07); margin: 18px 0; overflow: visible; }
 		.pmm-card.is-disabled { opacity: 0.78; }
 		.pmm-card__toggle { align-items: center; background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) auto; padding: 14px 16px; }
 		.pmm-card__toggle:hover { background: #f3f6fb; }
 		.pmm-card__toggle-button { align-items: center; background: transparent; border: 0; cursor: pointer; display: flex; gap: 14px; min-width: 0; padding: 0; text-align: left; width: 100%; }
 		.pmm-card__toggle-button:focus { box-shadow: 0 0 0 2px var(--pmm-accent); outline: 2px solid transparent; }
-		.pmm-card__header-actions { align-items: center; display: inline-flex; gap: 10px; justify-content: flex-end; }
+		.pmm-card__header-actions { align-items: center; display: inline-flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
 		.pmm-card__identity { display: grid; flex: 1; gap: 3px; min-width: 0; }
 		.pmm-card__eyebrow { color: var(--pmm-muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
 		.pmm-card__title { color: var(--pmm-ink); font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -773,11 +824,15 @@ function pmm_render_admin_assets() {
 		.pmm-card.is-collapsed .pmm-card__body { display: none; }
 		.pmm-card.is-collapsed .pmm-card__toggle-button > .dashicons { transform: rotate(180deg); }
 		.pmm-rule-delete { align-items: center; display: inline-flex; gap: 4px; text-decoration: none; }
+		.pmm-rule-clone { align-items: center; border-radius: 999px !important; display: inline-flex !important; gap: 5px; min-height: 32px !important; }
+		.pmm-rule-clone .dashicons { font-size: 16px; height: 16px; width: 16px; }
 		.pmm-rule-layout { align-items: start; display: grid; gap: 16px; grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.18fr); max-width: 100%; min-width: 0; }
 		.pmm-rule-layout__left, .pmm-rule-layout__right { display: grid; gap: 16px; min-width: 0; }
 		.pmm-grid { display: grid; gap: 14px 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin: 0; }
 		.pmm-grid--top { grid-template-columns: minmax(190px, 1fr) 110px; }
-		.pmm-field > span { color: #334155; display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+		.pmm-field > span:not(.pmm-input-action) { color: #334155; display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+		.pmm-help-tip { color: #64748b; cursor: help; font-size: 16px; height: 16px; margin-left: 4px; vertical-align: -3px; width: 16px; }
+		.pmm-help-tip:focus { color: var(--pmm-accent); outline: 1px solid var(--pmm-accent); outline-offset: 2px; }
 		.pmm-field input[type="text"], .pmm-field input[type="number"], .pmm-field input[type="search"] { border-color: #cbd5e1; border-radius: 6px; min-height: 36px; width: 100%; }
 		.pmm-field input:focus { border-color: var(--pmm-accent); box-shadow: 0 0 0 1px var(--pmm-accent); }
 		.pmm-field--priority input { max-width: 110px; }
@@ -816,10 +871,15 @@ function pmm_render_admin_assets() {
 		.pmm-post-result:hover, .pmm-post-result:focus { background: #eef4ff; outline: none; }
 		.pmm-post-result strong { color: var(--pmm-ink); font-size: 13px; }
 		.pmm-post-result small { color: var(--pmm-muted); font-size: 12px; }
+		.pmm-input-action { align-items: center; display: flex; gap: 8px; min-width: 0; }
+		.pmm-input-action input { flex: 1 1 auto; min-width: 0; }
+		.pmm-input-action .button { flex: 0 0 auto; }
 		.pmm-items { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; max-width: 100%; min-width: 0; overflow: visible; }
 		.pmm-item { align-items: center; border-top: 1px solid #edf2f7; display: grid; gap: 8px; grid-template-columns: 22px minmax(120px, 0.9fr) minmax(140px, 1.25fr) minmax(100px, 0.75fr) 76px minmax(76px, 0.55fr) 32px; max-width: 100%; min-width: 0; padding: 10px; }
 		.pmm-item:first-child { border-top: 0; }
-		.pmm-item__handle { color: #94a3b8; cursor: default; }
+		.pmm-item.is-dragging { opacity: 0.55; }
+		.pmm-item__handle { color: #94a3b8; cursor: grab; }
+		.pmm-item__handle:active { cursor: grabbing; }
 		.pmm-item input[type="text"] { border-color: #cbd5e1; border-radius: 6px; min-height: 34px; min-width: 0; width: 100%; }
 		.pmm-mini-check { align-items: center; display: inline-flex; gap: 6px; white-space: nowrap; }
 		.pmm-icon-delete { align-items: center; border: 1px solid #ffd7d2; border-radius: 6px; color: var(--pmm-danger); display: inline-flex; height: 30px; justify-content: center; padding: 0; text-decoration: none; width: 30px; }
@@ -839,6 +899,8 @@ function pmm_render_admin_assets() {
 		@media (max-width: 720px) {
 			.pmm-card__body, .pmm-section { padding: 12px; }
 			.pmm-item { grid-template-columns: 1fr; }
+			.pmm-wrap .pmm-description-line { white-space: normal; }
+			.pmm-input-action { align-items: stretch; flex-direction: column; }
 			.pmm-mini-check { white-space: normal; }
 		}
 	</style>
@@ -851,6 +913,8 @@ function pmm_render_admin_assets() {
 				ajaxUrl: <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>,
 				nonce: <?php echo wp_json_encode( wp_create_nonce( 'pmm_search_posts' ) ); ?>
 			};
+			let draggedItem = null;
+			let dragHandleIntent = false;
 
 			function nextRuleIndex() {
 				return String(Date.now());
@@ -861,15 +925,36 @@ function pmm_render_admin_assets() {
 			}
 
 			function blankItemHtml(ruleIndex, itemIndex) {
-				return '<div class="pmm-item" data-item>' +
+				return '<div class="pmm-item" data-item draggable="true">' +
 					'<span class="pmm-item__handle dashicons dashicons-menu" aria-hidden="true"></span>' +
 					'<input type="text" name="pmm_rules[' + ruleIndex + '][items][' + itemIndex + '][label]" placeholder="Tên item">' +
-					'<input type="text" name="pmm_rules[' + ruleIndex + '][items][' + itemIndex + '][url]" placeholder="https://... hoặc /duong-dan/ hoặc #id-section">' +
+					'<input type="text" name="pmm_rules[' + ruleIndex + '][items][' + itemIndex + '][url]" value="#" placeholder="https://... hoặc /duong-dan/ hoặc #id-section">' +
 					'<input type="text" name="pmm_rules[' + ruleIndex + '][items][' + itemIndex + '][class]" placeholder="CSS class">' +
 					'<label class="pmm-mini-check"><input type="checkbox" name="pmm_rules[' + ruleIndex + '][items][' + itemIndex + '][target]" value="_blank"> Tab mới</label>' +
 					'<input type="text" name="pmm_rules[' + ruleIndex + '][items][' + itemIndex + '][rel]" placeholder="rel">' +
 					'<button type="button" class="button-link-delete pmm-icon-delete" data-remove-item aria-label="Xóa item"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button>' +
 				'</div>';
+			}
+
+			function closeAllRules() {
+				rules.querySelectorAll('[data-rule]').forEach(function (card) {
+					card.classList.add('is-collapsed');
+					const button = card.querySelector('[data-toggle-rule]');
+
+					if (button) {
+						button.setAttribute('aria-expanded', 'false');
+					}
+				});
+			}
+
+			function openRule(rule) {
+				const button = rule.querySelector('[data-toggle-rule]');
+
+				rule.classList.remove('is-collapsed');
+
+				if (button) {
+					button.setAttribute('aria-expanded', 'true');
+				}
 			}
 
 			function refreshRuleTitle(input) {
@@ -913,6 +998,24 @@ function pmm_render_admin_assets() {
 				picker.querySelector('[data-post-ids]').value = ids.join(',');
 			}
 
+			function updateLogoLinkDefaultForRule(rule) {
+				const logoLink = rule.querySelector('[data-logo-link]');
+
+				if (!logoLink) {
+					return;
+				}
+
+				const currentValue = logoLink.value.trim();
+
+				if (logoLink.dataset.autoLogoLink !== '1' && currentValue && currentValue !== '/') {
+					return;
+				}
+
+				const selectedPosts = Array.from(rule.querySelectorAll('[data-selected-posts] [data-post-id]'));
+				logoLink.value = selectedPosts.length === 1 ? (selectedPosts[0].dataset.permalink || '/') : '/';
+				logoLink.dataset.autoLogoLink = '1';
+			}
+
 			function createPostChip(item) {
 				const chip = document.createElement('span');
 				const content = document.createElement('span');
@@ -923,6 +1026,7 @@ function pmm_render_admin_assets() {
 
 				chip.className = 'pmm-post-chip';
 				chip.setAttribute('data-post-id', item.id);
+				chip.dataset.permalink = item.permalink || '/';
 				title.textContent = item.title;
 				meta.textContent = item.meta;
 				button.type = 'button';
@@ -962,6 +1066,7 @@ function pmm_render_admin_assets() {
 					button.dataset.id = item.id;
 					button.dataset.title = item.title;
 					button.dataset.meta = item.meta;
+					button.dataset.permalink = item.permalink || '/';
 					title.textContent = item.title;
 					meta.textContent = item.meta;
 					button.append(title, meta);
@@ -1006,6 +1111,109 @@ function pmm_render_admin_assets() {
 				}, 220);
 			}
 
+			function renameRuleInputs(rule, ruleIndex) {
+				rule.querySelectorAll('[name]').forEach(function (field) {
+					field.name = field.name.replace(/^pmm_rules\[[^\]]+\]/, 'pmm_rules[' + ruleIndex + ']');
+				});
+			}
+
+			function resetClonedRuleConditions(rule) {
+				const postIds = rule.querySelector('[data-post-ids]');
+				const selectedPosts = rule.querySelector('[data-selected-posts]');
+				const postSearch = rule.querySelector('[data-post-search]');
+				const postResults = rule.querySelector('[data-post-results]');
+				const pathContains = rule.querySelector('[name$="[path_contains]"]');
+				const logoLink = rule.querySelector('[data-logo-link]');
+
+				if (postIds) {
+					postIds.value = '';
+				}
+
+				if (selectedPosts) {
+					selectedPosts.innerHTML = '';
+				}
+
+				if (postSearch) {
+					postSearch.value = '';
+				}
+
+				if (postResults) {
+					postResults.hidden = true;
+					postResults.innerHTML = '';
+				}
+
+				if (pathContains) {
+					pathContains.value = '';
+				}
+
+				if (logoLink) {
+					logoLink.value = '/';
+					logoLink.dataset.autoLogoLink = '1';
+				}
+			}
+
+			function cloneMenuRule(button) {
+				const sourceRule = button.closest('[data-rule]');
+				const clonedRule = sourceRule.cloneNode(true);
+				const ruleIndex = nextRuleIndex();
+				const titleInput = clonedRule.querySelector('[data-title-input]');
+				const enabledInput = clonedRule.querySelector('[data-enabled-input]');
+
+				renameRuleInputs(clonedRule, ruleIndex);
+				resetClonedRuleConditions(clonedRule);
+				closeAllRules();
+				sourceRule.insertAdjacentElement('afterend', clonedRule);
+				refreshLocationCount(clonedRule);
+
+				if (titleInput) {
+					refreshRuleTitle(titleInput);
+				}
+
+				if (enabledInput) {
+					refreshRuleStatus(enabledInput);
+				}
+
+				openRule(clonedRule);
+			}
+
+			function openLogoMediaPicker(button) {
+				const rule = button.closest('[data-rule]');
+				const logoUrl = rule ? rule.querySelector('[data-logo-url]') : null;
+
+				if (!logoUrl || !window.wp || !window.wp.media) {
+					return;
+				}
+
+				const frame = window.wp.media({
+					title: 'Chọn logo',
+					button: { text: 'Dùng logo này' },
+					multiple: false
+				});
+
+				frame.on('select', function () {
+					const attachment = frame.state().get('selection').first().toJSON();
+
+					if (attachment && attachment.url) {
+						logoUrl.value = attachment.url;
+					}
+				});
+
+				frame.open();
+			}
+
+			function getDragAfterElement(container, y) {
+				return Array.from(container.querySelectorAll('[data-item]:not(.is-dragging)')).reduce(function (closest, child) {
+					const box = child.getBoundingClientRect();
+					const offset = y - box.top - box.height / 2;
+
+					if (offset < 0 && offset > closest.offset) {
+						return { offset: offset, element: child };
+					}
+
+					return closest;
+				}, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+			}
+
 			addRule.addEventListener('click', function () {
 				const ruleIndex = nextRuleIndex();
 				rules.insertAdjacentHTML('beforeend', ruleTemplate.innerHTML.replaceAll('__RULE_INDEX__', ruleIndex));
@@ -1018,27 +1226,33 @@ function pmm_render_admin_assets() {
 				const toggleRule = event.target.closest('[data-toggle-rule]');
 				const removePost = event.target.closest('[data-remove-post]');
 				const selectPost = event.target.closest('[data-select-post]');
+				const cloneRule = event.target.closest('[data-clone-rule]');
+				const pickLogo = event.target.closest('[data-pick-logo]');
 
 				if (toggleRule) {
 					const rule = toggleRule.closest('[data-rule]');
 					const willOpen = rule.classList.contains('is-collapsed');
 
-					rules.querySelectorAll('[data-rule]').forEach(function (card) {
-						card.classList.add('is-collapsed');
-						const button = card.querySelector('[data-toggle-rule]');
-
-						if (button) {
-							button.setAttribute('aria-expanded', 'false');
-						}
-					});
+					closeAllRules();
 
 					if (willOpen) {
-						rule.classList.remove('is-collapsed');
-						toggleRule.setAttribute('aria-expanded', 'true');
+						openRule(rule);
 					} else {
 						toggleRule.setAttribute('aria-expanded', 'false');
 					}
 
+					return;
+				}
+
+				if (cloneRule) {
+					event.preventDefault();
+					cloneMenuRule(cloneRule);
+					return;
+				}
+
+				if (pickLogo) {
+					event.preventDefault();
+					openLogoMediaPicker(pickLogo);
 					return;
 				}
 
@@ -1068,6 +1282,7 @@ function pmm_render_admin_assets() {
 					const picker = removePost.closest('[data-post-picker]');
 					removePost.closest('[data-post-id]').remove();
 					syncSelectedPostIds(picker);
+					updateLogoLinkDefaultForRule(picker.closest('[data-rule]'));
 				}
 
 				if (selectPost) {
@@ -1077,12 +1292,14 @@ function pmm_render_admin_assets() {
 					const item = {
 						id: selectPost.dataset.id,
 						title: selectPost.dataset.title,
-						meta: selectPost.dataset.meta
+						meta: selectPost.dataset.meta,
+						permalink: selectPost.dataset.permalink
 					};
 
 					if (!ids.includes(item.id)) {
 						picker.querySelector('[data-selected-posts]').append(createPostChip(item));
 						syncSelectedPostIds(picker);
+						updateLogoLinkDefaultForRule(picker.closest('[data-rule]'));
 					}
 
 					picker.querySelector('[data-post-search]').value = '';
@@ -1099,6 +1316,10 @@ function pmm_render_admin_assets() {
 				if (event.target.matches('[data-post-search]')) {
 					searchPosts(event.target);
 				}
+
+				if (event.target.matches('[data-logo-link]')) {
+					event.target.dataset.autoLogoLink = '0';
+				}
 			});
 
 			rules.addEventListener('change', function (event) {
@@ -1109,6 +1330,62 @@ function pmm_render_admin_assets() {
 				if (event.target.matches('[data-enabled-input]')) {
 					refreshRuleStatus(event.target);
 				}
+			});
+
+			rules.addEventListener('pointerdown', function (event) {
+				dragHandleIntent = Boolean(event.target.closest('.pmm-item__handle'));
+			});
+
+			rules.addEventListener('pointerup', function () {
+				dragHandleIntent = false;
+			});
+
+			rules.addEventListener('dragstart', function (event) {
+				const item = event.target.closest('[data-item]');
+
+				if (!item || !dragHandleIntent) {
+					event.preventDefault();
+					return;
+				}
+
+				draggedItem = item;
+				item.classList.add('is-dragging');
+
+				if (event.dataTransfer) {
+					event.dataTransfer.effectAllowed = 'move';
+				}
+			});
+
+			rules.addEventListener('dragover', function (event) {
+				const container = event.target.closest('[data-items]');
+
+				if (!container || !draggedItem || draggedItem.parentElement !== container) {
+					return;
+				}
+
+				event.preventDefault();
+				const afterElement = getDragAfterElement(container, event.clientY);
+
+				if (afterElement) {
+					container.insertBefore(draggedItem, afterElement);
+				} else {
+					container.appendChild(draggedItem);
+				}
+			});
+
+			rules.addEventListener('drop', function (event) {
+				if (draggedItem) {
+					event.preventDefault();
+				}
+			});
+
+			rules.addEventListener('dragend', function () {
+				if (draggedItem) {
+					draggedItem.classList.remove('is-dragging');
+				}
+
+				draggedItem = null;
+				dragHandleIntent = false;
 			});
 		}());
 	</script>
