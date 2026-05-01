@@ -568,129 +568,151 @@ function pmm_blank_rule() {
 	);
 }
 
+function pmm_get_rule_card_classes( $rule ) {
+	$classes = array( 'pmm-card', 'is-collapsed' );
+
+	if ( empty( $rule['enabled'] ) ) {
+		$classes[] = 'is-disabled';
+	}
+
+	$classes = apply_filters( 'pmm_rule_card_classes', $classes, $rule );
+
+	return implode( ' ', array_map( 'sanitize_html_class', array_filter( $classes ) ) );
+}
+
 function pmm_render_rule_card( $rule, $rule_index, $menu_locations ) {
 	$rule = wp_parse_args( $rule, pmm_blank_rule() );
 	$selected_locations = pmm_get_rule_menu_locations( $rule );
 	$rule_title         = $rule['title'] ? $rule['title'] : 'Menu rule';
 	$location_count     = count( $selected_locations );
 	?>
-	<section class="pmm-card<?php echo empty( $rule['enabled'] ) ? ' is-disabled' : ''; ?>" data-rule>
-		<button type="button" class="pmm-card__toggle" data-toggle-rule aria-expanded="true">
-			<span class="pmm-card__identity">
-				<span class="pmm-card__eyebrow">Menu rule</span>
-				<span class="pmm-card__title" data-rule-title><?php echo esc_html( $rule_title ); ?></span>
-			</span>
-			<span class="pmm-card__summary">
-				<span class="pmm-card__meta" data-location-count><?php echo esc_html( $location_count . ' vị trí menu' ); ?></span>
-				<span class="pmm-status<?php echo ! empty( $rule['enabled'] ) ? ' is-active' : ''; ?>" data-rule-status><?php echo ! empty( $rule['enabled'] ) ? 'Đang bật' : 'Đang tắt'; ?></span>
-			</span>
-			<span class="dashicons dashicons-arrow-up-alt2" aria-hidden="true"></span>
-		</button>
+	<section class="<?php echo esc_attr( pmm_get_rule_card_classes( $rule ) ); ?>" data-rule>
+		<div class="pmm-card__toggle">
+			<button type="button" class="pmm-card__toggle-button" data-toggle-rule aria-expanded="false">
+				<span class="pmm-card__identity">
+					<span class="pmm-card__eyebrow">Menu rule</span>
+					<span class="pmm-card__title" data-rule-title><?php echo esc_html( $rule_title ); ?></span>
+				</span>
+				<span class="pmm-card__summary">
+					<span class="pmm-card__meta" data-location-count><?php echo esc_html( $location_count . ' vị trí menu' ); ?></span>
+					<span class="pmm-status<?php echo ! empty( $rule['enabled'] ) ? ' is-active' : ''; ?>" data-rule-status><?php echo ! empty( $rule['enabled'] ) ? 'Đang bật' : 'Đang tắt'; ?></span>
+				</span>
+				<span class="dashicons dashicons-arrow-up-alt2" aria-hidden="true"></span>
+			</button>
+			<div class="pmm-card__header-actions">
+				<label class="pmm-switch pmm-switch--compact">
+					<input type="checkbox" data-enabled-input name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][enabled]" value="1" <?php checked( ! empty( $rule['enabled'] ) ); ?>>
+					<span>Bật</span>
+				</label>
+				<button type="button" class="button-link-delete pmm-rule-delete" data-remove-rule>
+					<span class="dashicons dashicons-trash" aria-hidden="true"></span>
+					Xóa
+				</button>
+			</div>
+		</div>
 
 		<div class="pmm-card__body" data-rule-body>
-			<div class="pmm-card__actions">
-				<label class="pmm-switch">
-					<input type="checkbox" data-enabled-input name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][enabled]" value="1" <?php checked( ! empty( $rule['enabled'] ) ); ?>>
-					<span>Bật rule này</span>
-				</label>
-				<button type="button" class="button-link-delete" data-remove-rule>Xóa rule</button>
-			</div>
-
-			<div class="pmm-grid pmm-grid--top">
-				<label class="pmm-field">
-					<span>Tên rule</span>
-					<input type="text" class="regular-text" data-title-input name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][title]" value="<?php echo esc_attr( $rule['title'] ); ?>" placeholder="VD: Menu Landing Blanca City">
-				</label>
-				<label class="pmm-field pmm-field--priority">
-					<span>Ưu tiên</span>
-					<input type="number" min="1" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][priority]" value="<?php echo esc_attr( $rule['priority'] ); ?>">
-				</label>
-			</div>
-
-			<div class="pmm-section">
-				<div class="pmm-section__head">
-					<h3>Menu location</h3>
-					<span data-location-count><?php echo esc_html( $location_count . ' vị trí đã chọn' ); ?></span>
-				</div>
-				<div class="pmm-location-picker" data-location-picker>
-					<input type="hidden" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][menu_locations][]" value="">
-					<?php if ( empty( $menu_locations ) ) : ?>
-						<p class="pmm-muted">Theme hiện chưa đăng ký menu location nào.</p>
-					<?php else : ?>
-						<?php foreach ( $menu_locations as $location => $label ) : ?>
-							<label class="pmm-location-pill">
-								<input type="checkbox" data-location-input name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][menu_locations][]" value="<?php echo esc_attr( $location ); ?>" <?php checked( in_array( $location, $selected_locations, true ) ); ?>>
-								<span class="pmm-location-pill__mark" aria-hidden="true"></span>
-								<span class="pmm-location-pill__text">
-									<span><?php echo esc_html( $label ); ?></span>
-									<code><?php echo esc_html( $location ); ?></code>
-								</span>
-							</label>
-						<?php endforeach; ?>
-					<?php endif; ?>
-				</div>
-			</div>
-
-			<div class="pmm-section">
-				<h3>Điều kiện áp dụng</h3>
-				<div class="pmm-grid">
-					<div class="pmm-field pmm-post-picker" data-post-picker>
-						<span>ID page/post cụ thể</span>
-						<input type="hidden" data-post-ids name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][post_ids]" value="<?php echo esc_attr( implode( ',', (array) $rule['post_ids'] ) ); ?>">
-						<div class="pmm-post-picker__selected" data-selected-posts>
-							<?php foreach ( pmm_get_post_picker_items( $rule['post_ids'] ) as $post_item ) : ?>
-								<span class="pmm-post-chip" data-post-id="<?php echo esc_attr( $post_item['id'] ); ?>">
-									<span>
-										<strong><?php echo esc_html( $post_item['title'] ); ?></strong>
-										<small><?php echo esc_html( $post_item['meta'] ); ?></small>
-									</span>
-									<button type="button" data-remove-post aria-label="Bỏ <?php echo esc_attr( $post_item['title'] ); ?>">
-										<span class="dashicons dashicons-no-alt" aria-hidden="true"></span>
-									</button>
-								</span>
-							<?php endforeach; ?>
+			<div class="pmm-rule-layout">
+				<div class="pmm-rule-layout__left">
+					<div class="pmm-section pmm-section--settings">
+						<div class="pmm-section__head">
+							<h3>Thiết lập rule</h3>
+							<span data-location-count><?php echo esc_html( $location_count . ' vị trí đã chọn' ); ?></span>
 						</div>
-						<div class="pmm-post-picker__search">
-							<input type="search" data-post-search placeholder="Gõ tên page/post để chọn">
-							<div class="pmm-post-picker__results" data-post-results hidden></div>
+						<div class="pmm-grid pmm-grid--top">
+							<label class="pmm-field">
+								<span>Tên rule</span>
+								<input type="text" class="regular-text" data-title-input name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][title]" value="<?php echo esc_attr( $rule['title'] ); ?>" placeholder="VD: Menu Landing Blanca City">
+							</label>
+							<label class="pmm-field pmm-field--priority">
+								<span>Ưu tiên</span>
+								<input type="number" min="1" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][priority]" value="<?php echo esc_attr( $rule['priority'] ); ?>">
+							</label>
+						</div>
+
+						<div class="pmm-field">
+							<span>Menu location</span>
+							<div class="pmm-location-picker" data-location-picker>
+								<input type="hidden" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][menu_locations][]" value="">
+								<?php if ( empty( $menu_locations ) ) : ?>
+									<p class="pmm-muted">Theme hiện chưa đăng ký menu location nào.</p>
+								<?php else : ?>
+									<?php foreach ( $menu_locations as $location => $label ) : ?>
+										<label class="pmm-location-pill">
+											<input type="checkbox" data-location-input name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][menu_locations][]" value="<?php echo esc_attr( $location ); ?>" <?php checked( in_array( $location, $selected_locations, true ) ); ?>>
+											<span class="pmm-location-pill__mark" aria-hidden="true"></span>
+											<span class="pmm-location-pill__text">
+												<span><?php echo esc_html( $label ); ?></span>
+												<code><?php echo esc_html( $location ); ?></code>
+											</span>
+										</label>
+									<?php endforeach; ?>
+								<?php endif; ?>
+							</div>
+						</div>
+
+						<div class="pmm-rule-conditions">
+							<div class="pmm-field pmm-post-picker" data-post-picker>
+								<span>ID page/post cụ thể</span>
+								<input type="hidden" data-post-ids name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][post_ids]" value="<?php echo esc_attr( implode( ',', (array) $rule['post_ids'] ) ); ?>">
+								<div class="pmm-post-picker__selected" data-selected-posts>
+									<?php foreach ( pmm_get_post_picker_items( $rule['post_ids'] ) as $post_item ) : ?>
+										<span class="pmm-post-chip" data-post-id="<?php echo esc_attr( $post_item['id'] ); ?>">
+											<span>
+												<strong><?php echo esc_html( $post_item['title'] ); ?></strong>
+												<small><?php echo esc_html( $post_item['meta'] ); ?></small>
+											</span>
+											<button type="button" data-remove-post aria-label="Bỏ <?php echo esc_attr( $post_item['title'] ); ?>">
+												<span class="dashicons dashicons-no-alt" aria-hidden="true"></span>
+											</button>
+										</span>
+									<?php endforeach; ?>
+								</div>
+								<div class="pmm-post-picker__search">
+									<input type="search" data-post-search placeholder="Gõ tên page/post để chọn">
+									<div class="pmm-post-picker__results" data-post-results hidden></div>
+								</div>
+							</div>
+							<label class="pmm-field">
+								<span>URL path chứa</span>
+								<input type="text" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][path_contains]" value="<?php echo esc_attr( $rule['path_contains'] ); ?>" placeholder="/landing/">
+							</label>
 						</div>
 					</div>
-					<label class="pmm-field">
-						<span>URL path chứa</span>
-						<input type="text" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][path_contains]" value="<?php echo esc_attr( $rule['path_contains'] ); ?>" placeholder="/landing/">
-					</label>
 				</div>
-			</div>
 
-			<div class="pmm-section">
-				<div class="pmm-section__head">
-					<h3>Logo header</h3>
-					<label class="pmm-switch">
-						<input type="checkbox" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][logo_enabled]" value="1" <?php checked( ! empty( $rule['logo_enabled'] ) ); ?>>
-						<span>Đổi logo/link logo</span>
-					</label>
-				</div>
-				<div class="pmm-grid">
-					<label class="pmm-field">
-						<span>Logo URL</span>
-						<input type="text" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][logo_url]" value="<?php echo esc_attr( $rule['logo_url'] ); ?>" placeholder="https://.../logo.svg hoặc /uploads/logo.png">
-					</label>
-					<label class="pmm-field">
-						<span>Link logo</span>
-						<input type="text" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][logo_link_url]" value="<?php echo esc_attr( $rule['logo_link_url'] ); ?>" placeholder="/landing-page/">
-					</label>
-				</div>
-			</div>
+				<div class="pmm-rule-layout__right">
+					<div class="pmm-section">
+						<div class="pmm-section__head">
+							<h3>Logo header</h3>
+							<label class="pmm-switch">
+								<input type="checkbox" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][logo_enabled]" value="1" <?php checked( ! empty( $rule['logo_enabled'] ) ); ?>>
+								<span>Đổi logo/link logo</span>
+							</label>
+						</div>
+						<div class="pmm-grid">
+							<label class="pmm-field">
+								<span>Logo URL</span>
+								<input type="text" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][logo_url]" value="<?php echo esc_attr( $rule['logo_url'] ); ?>" placeholder="https://.../logo.svg hoặc /uploads/logo.png">
+							</label>
+							<label class="pmm-field">
+								<span>Link logo</span>
+								<input type="text" name="pmm_rules[<?php echo esc_attr( $rule_index ); ?>][logo_link_url]" value="<?php echo esc_attr( $rule['logo_link_url'] ); ?>" placeholder="/landing-page/">
+							</label>
+						</div>
+					</div>
 
-			<div class="pmm-section">
-				<div class="pmm-section__head">
-					<h3>Menu items</h3>
-					<button type="button" class="button pmm-button-secondary" data-add-item>Thêm item</button>
-				</div>
-				<div class="pmm-items" data-items>
-					<?php foreach ( (array) $rule['items'] as $item_index => $item ) : ?>
-						<?php pmm_render_menu_item_row( $rule_index, $item_index, $item ); ?>
-					<?php endforeach; ?>
+					<div class="pmm-section">
+						<div class="pmm-section__head">
+							<h3>Menu items</h3>
+							<button type="button" class="button pmm-button-secondary" data-add-item>Thêm item</button>
+						</div>
+						<div class="pmm-items" data-items>
+							<?php foreach ( (array) $rule['items'] as $item_index => $item ) : ?>
+								<?php pmm_render_menu_item_row( $rule_index, $item_index, $item ); ?>
+							<?php endforeach; ?>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -734,8 +756,11 @@ function pmm_render_admin_assets() {
 		.pmm-wrap .description { color: var(--pmm-muted); max-width: 880px; }
 		.pmm-card { background: var(--pmm-panel); border: 1px solid var(--pmm-line); border-radius: 8px; box-shadow: 0 14px 36px rgba(23, 32, 51, 0.07); margin: 18px 0; overflow: hidden; }
 		.pmm-card.is-disabled { opacity: 0.78; }
-		.pmm-card__toggle { align-items: center; background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); border: 0; cursor: pointer; display: flex; gap: 14px; padding: 16px 18px; text-align: left; width: 100%; }
+		.pmm-card__toggle { align-items: center; background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) auto; padding: 14px 16px; }
 		.pmm-card__toggle:hover { background: #f3f6fb; }
+		.pmm-card__toggle-button { align-items: center; background: transparent; border: 0; cursor: pointer; display: flex; gap: 14px; min-width: 0; padding: 0; text-align: left; width: 100%; }
+		.pmm-card__toggle-button:focus { box-shadow: 0 0 0 2px var(--pmm-accent); outline: 2px solid transparent; }
+		.pmm-card__header-actions { align-items: center; display: inline-flex; gap: 10px; justify-content: flex-end; }
 		.pmm-card__identity { display: grid; flex: 1; gap: 3px; min-width: 0; }
 		.pmm-card__eyebrow { color: var(--pmm-muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
 		.pmm-card__title { color: var(--pmm-ink); font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -745,34 +770,39 @@ function pmm_render_admin_assets() {
 		.pmm-status.is-active { background: #eaf8ef; border-color: #c8ecd3; color: var(--pmm-success); }
 		.pmm-card__body { border-top: 1px solid var(--pmm-line); padding: 18px; }
 		.pmm-card.is-collapsed .pmm-card__body { display: none; }
-		.pmm-card.is-collapsed .pmm-card__toggle > .dashicons { transform: rotate(180deg); }
-		.pmm-card__actions { align-items: center; display: flex; gap: 16px; justify-content: flex-end; margin-bottom: 14px; }
+		.pmm-card.is-collapsed .pmm-card__toggle-button > .dashicons { transform: rotate(180deg); }
+		.pmm-rule-delete { align-items: center; display: inline-flex; gap: 4px; text-decoration: none; }
+		.pmm-rule-layout { align-items: start; display: grid; gap: 16px; grid-template-columns: minmax(300px, 0.85fr) minmax(420px, 1.15fr); }
+		.pmm-rule-layout__left, .pmm-rule-layout__right { display: grid; gap: 16px; }
 		.pmm-grid { display: grid; gap: 14px 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin: 0; }
-		.pmm-grid--top { grid-template-columns: minmax(280px, 1fr) 140px; }
+		.pmm-grid--top { grid-template-columns: minmax(190px, 1fr) 110px; }
 		.pmm-field > span { color: #334155; display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
 		.pmm-field input[type="text"], .pmm-field input[type="number"], .pmm-field input[type="search"] { border-color: #cbd5e1; border-radius: 6px; min-height: 36px; width: 100%; }
 		.pmm-field input:focus { border-color: var(--pmm-accent); box-shadow: 0 0 0 1px var(--pmm-accent); }
-		.pmm-field--priority input { max-width: 140px; }
-		.pmm-section { background: var(--pmm-soft); border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 16px; padding: 16px; }
+		.pmm-field--priority input { max-width: 110px; }
+		.pmm-section { background: var(--pmm-soft); border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; }
+		.pmm-section--settings { display: grid; gap: 14px; }
 		.pmm-section__head { align-items: center; display: flex; gap: 12px; justify-content: space-between; margin-bottom: 12px; }
 		.pmm-section h3, .pmm-section__head h3 { color: var(--pmm-ink); font-size: 14px; margin: 0 0 12px; }
 		.pmm-section__head h3 { margin: 0; }
 		.pmm-section__head > span { color: var(--pmm-muted); font-size: 12px; font-weight: 700; }
 		.pmm-muted { color: var(--pmm-muted); margin: 0; }
-		.pmm-location-picker { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
-		.pmm-location-pill { align-items: center; background: #fff; border: 1px solid #d8e0eb; border-radius: 8px; cursor: pointer; display: flex; gap: 10px; min-height: 58px; padding: 10px 12px; position: relative; }
+		.pmm-rule-conditions { display: grid; gap: 14px; }
+		.pmm-location-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+		.pmm-location-pill { align-items: center; background: #fff; border: 1px solid #d8e0eb; border-radius: 999px; cursor: pointer; display: inline-flex; gap: 7px; min-height: 34px; padding: 6px 10px; position: relative; }
 		.pmm-location-pill:hover { border-color: #9db5d8; box-shadow: 0 8px 18px rgba(37, 99, 235, 0.08); }
 		.pmm-location-pill input { height: 1px; opacity: 0; position: absolute; width: 1px; }
-		.pmm-location-pill__mark { align-items: center; border: 1px solid #b9c5d6; border-radius: 6px; display: inline-flex; flex: 0 0 22px; height: 22px; justify-content: center; width: 22px; }
-		.pmm-location-pill__mark::after { color: #fff; content: "\f147"; display: none; font-family: dashicons; font-size: 16px; line-height: 1; }
-		.pmm-location-pill__text { display: grid; gap: 3px; min-width: 0; }
-		.pmm-location-pill__text span { color: var(--pmm-ink); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-		.pmm-location-pill__text code { background: transparent; color: var(--pmm-muted); font-size: 12px; padding: 0; }
+		.pmm-location-pill__mark { align-items: center; border: 1px solid #b9c5d6; border-radius: 999px; display: inline-flex; flex: 0 0 18px; height: 18px; justify-content: center; width: 18px; }
+		.pmm-location-pill__mark::after { color: #fff; content: "\f147"; display: none; font-family: dashicons; font-size: 14px; line-height: 1; }
+		.pmm-location-pill__text { align-items: baseline; display: inline-flex; gap: 5px; min-width: 0; }
+		.pmm-location-pill__text span { color: var(--pmm-ink); font-size: 12px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+		.pmm-location-pill__text code { background: transparent; color: var(--pmm-muted); font-size: 11px; padding: 0; }
 		.pmm-location-pill input:checked + .pmm-location-pill__mark { background: var(--pmm-accent); border-color: var(--pmm-accent); }
 		.pmm-location-pill input:checked + .pmm-location-pill__mark::after { display: block; }
 		.pmm-location-pill input:checked ~ .pmm-location-pill__text span { color: #174ea6; }
 		.pmm-switch { align-items: center; color: #334155; display: inline-flex; gap: 8px; font-weight: 700; }
 		.pmm-switch input { margin: 0; }
+		.pmm-switch--compact { background: #eef2f7; border: 1px solid #dce5ef; border-radius: 999px; padding: 5px 10px; }
 		.pmm-post-picker { position: relative; }
 		.pmm-post-picker__selected { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; min-height: 0; }
 		.pmm-post-chip { align-items: center; background: var(--pmm-accent-soft); border: 1px solid #bfd2ff; border-radius: 8px; display: inline-flex; gap: 8px; max-width: 100%; padding: 7px 8px 7px 10px; }
@@ -795,7 +825,9 @@ function pmm_render_admin_assets() {
 		.pmm-icon-delete:hover { background: #fff1f0; color: var(--pmm-danger); }
 		.pmm-button-secondary { border-radius: 6px !important; }
 		@media (max-width: 900px) {
-			.pmm-card__toggle, .pmm-card__summary, .pmm-section__head { align-items: flex-start; flex-direction: column; }
+			.pmm-card__toggle, .pmm-rule-layout { grid-template-columns: 1fr; }
+			.pmm-card__summary, .pmm-section__head { align-items: flex-start; flex-direction: column; }
+			.pmm-card__header-actions { justify-content: flex-start; }
 			.pmm-grid--top, .pmm-item { grid-template-columns: 1fr; }
 			.pmm-field--priority input { max-width: 100%; }
 			.pmm-item__handle { display: none; }
@@ -821,12 +853,13 @@ function pmm_render_admin_assets() {
 
 			function blankItemHtml(ruleIndex, itemIndex) {
 				return '<div class="pmm-item" data-item>' +
+					'<span class="pmm-item__handle dashicons dashicons-menu" aria-hidden="true"></span>' +
 					'<input type="text" name="pmm_rules[' + ruleIndex + '][items][' + itemIndex + '][label]" placeholder="Tên item">' +
 					'<input type="text" name="pmm_rules[' + ruleIndex + '][items][' + itemIndex + '][url]" placeholder="https://... hoặc /duong-dan/ hoặc #id-section">' +
 					'<input type="text" name="pmm_rules[' + ruleIndex + '][items][' + itemIndex + '][class]" placeholder="CSS class">' +
-					'<label><input type="checkbox" name="pmm_rules[' + ruleIndex + '][items][' + itemIndex + '][target]" value="_blank"> Tab mới</label>' +
+					'<label class="pmm-mini-check"><input type="checkbox" name="pmm_rules[' + ruleIndex + '][items][' + itemIndex + '][target]" value="_blank"> Tab mới</label>' +
 					'<input type="text" name="pmm_rules[' + ruleIndex + '][items][' + itemIndex + '][rel]" placeholder="rel">' +
-					'<button type="button" class="button-link-delete" data-remove-item>Xóa</button>' +
+					'<button type="button" class="button-link-delete pmm-icon-delete" data-remove-item aria-label="Xóa item"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button>' +
 				'</div>';
 			}
 
@@ -979,9 +1012,25 @@ function pmm_render_admin_assets() {
 
 				if (toggleRule) {
 					const rule = toggleRule.closest('[data-rule]');
-					const isCollapsed = rule.classList.toggle('is-collapsed');
+					const willOpen = rule.classList.contains('is-collapsed');
 
-					toggleRule.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+					rules.querySelectorAll('[data-rule]').forEach(function (card) {
+						card.classList.add('is-collapsed');
+						const button = card.querySelector('[data-toggle-rule]');
+
+						if (button) {
+							button.setAttribute('aria-expanded', 'false');
+						}
+					});
+
+					if (willOpen) {
+						rule.classList.remove('is-collapsed');
+						toggleRule.setAttribute('aria-expanded', 'true');
+					} else {
+						toggleRule.setAttribute('aria-expanded', 'false');
+					}
+
+					return;
 				}
 
 				if (removeRule) {

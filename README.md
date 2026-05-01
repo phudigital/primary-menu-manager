@@ -44,11 +44,12 @@ Settings -> Primary Menu Manager
 Tạo rule theo luồng sau:
 
 1. Đặt tên rule để dễ quản lý.
-2. Chọn một hoặc nhiều menu location bằng các chip checkbox.
-3. Nhập điều kiện áp dụng: tìm page/post theo tên hoặc ID để chọn, hoặc nhập URL path.
-4. Thêm danh sách menu item riêng cho landing page.
-5. Nếu cần, bật đổi logo/link logo và nhập URL tương ứng.
-6. Lưu cấu hình.
+2. Mở rule cần chỉnh, các rule còn lại sẽ tự thu gọn.
+3. Chọn một hoặc nhiều menu location bằng các chip checkbox gọn trong cột thiết lập bên trái.
+4. Nhập điều kiện áp dụng: tìm page/post theo tên hoặc ID để chọn, hoặc nhập URL path.
+5. Thêm danh sách menu item riêng cho landing page ở cột bên phải.
+6. Nếu cần, bật đổi logo/link logo và nhập URL tương ứng.
+7. Lưu cấu hình.
 
 URL menu item có thể là URL đầy đủ, đường dẫn tương đối như `/du-an/`, hoặc section ID như `#tong-quan`.
 
