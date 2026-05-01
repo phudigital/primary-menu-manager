@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Primary Menu Manager admin interface preview</title>
+  <desc id="desc">Illustration of the WordPress admin settings page with menu rules, conditions, logo settings, and menu items.</desc>
+  <rect width="1200" height="720" fill="#f2f4f7"/>
+  <rect x="40" y="36" width="1120" height="648" rx="10" fill="#ffffff" stroke="#c9d1dc"/>
+  <rect x="40" y="36" width="1120" height="64" rx="10" fill="#17324d"/>
+  <text x="78" y="77" fill="#ffffff" font-family="Arial, sans-serif" font-size="24" font-weight="700">Primary Menu Manager</text>
+  <circle cx="1078" cy="68" r="14" fill="#f4b942"/>
+  <circle cx="1118" cy="68" r="14" fill="#49a078"/>
+  <rect x="78" y="130" width="260" height="34" rx="6" fill="#e8eef5"/>
+  <text x="96" y="153" fill="#17324d" font-family="Arial, sans-serif" font-size="15" font-weight="700">Settings -> Primary Menu Manager</text>
+  <rect x="78" y="190" width="1044" height="104" rx="8" fill="#ffffff" stroke="#b8c3cf"/>
+  <rect x="78" y="190" width="1044" height="48" rx="8" fill="#f7f9fb"/>
+  <text x="104" y="221" fill="#1d2327" font-family="Arial, sans-serif" font-size="19" font-weight="700">Landing Blanca City</text>
+  <rect x="948" y="204" width="92" height="20" rx="10" fill="#dff5e7"/>
+  <text x="968" y="219" fill="#1f6f43" font-family="Arial, sans-serif" font-size="12" font-weight="700">Đang bật</text>
+  <path d="M1082 209l12 12 12-12" fill="none" stroke="#17324d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="104" y="258" width="180" height="16" rx="8" fill="#d9e3ee"/>
+  <rect x="306" y="258" width="260" height="16" rx="8" fill="#d9e3ee"/>
+  <rect x="588" y="258" width="130" height="16" rx="8" fill="#d9e3ee"/>
+  <rect x="78" y="322" width="1044" height="274" rx="8" fill="#ffffff" stroke="#b8c3cf"/>
+  <text x="104" y="360" fill="#17324d" font-family="Arial, sans-serif" font-size="20" font-weight="700">Rule editor</text>
+  <text x="104" y="396" fill="#52616f" font-family="Arial, sans-serif" font-size="14">Điều kiện áp dụng</text>
+  <rect x="104" y="414" width="270" height="44" rx="6" fill="#f7f9fb" stroke="#c9d1dc"/>
+  <text x="124" y="442" fill="#1d2327" font-family="Arial, sans-serif" font-size="15">Page IDs: 27,42,108</text>
+  <rect x="396" y="414" width="270" height="44" rx="6" fill="#f7f9fb" stroke="#c9d1dc"/>
+  <text x="416" y="442" fill="#1d2327" font-family="Arial, sans-serif" font-size="15">Path: /landing/</text>
+  <text x="104" y="500" fill="#52616f" font-family="Arial, sans-serif" font-size="14">Menu items</text>
+  <rect x="104" y="520" width="148" height="34" rx="17" fill="#17324d"/>
+  <text x="132" y="542" fill="#ffffff" font-family="Arial, sans-serif" font-size="14" font-weight="700">Tổng quan</text>
+  <rect x="268" y="520" width="132" height="34" rx="17" fill="#e8eef5"/>
+  <text x="302" y="542" fill="#17324d" font-family="Arial, sans-serif" font-size="14" font-weight="700">Vị trí</text>
+  <rect x="416" y="520" width="148" height="34" rx="17" fill="#e8eef5"/>
+  <text x="446" y="542" fill="#17324d" font-family="Arial, sans-serif" font-size="14" font-weight="700">Tiện ích</text>
+  <rect x="716" y="386" width="354" height="160" rx="8" fill="#fff8e8" stroke="#f0c66f"/>
+  <text x="742" y="424" fill="#17324d" font-family="Arial, sans-serif" font-size="18" font-weight="700">Logo header</text>
+  <rect x="742" y="448" width="164" height="16" rx="8" fill="#e6c46c"/>
+  <rect x="742" y="482" width="260" height="16" rx="8" fill="#ead8a2"/>
+  <rect x="742" y="510" width="210" height="16" rx="8" fill="#ead8a2"/>
+  <path d="M1010 420l22 18 36-42" fill="none" stroke="#49a078" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="78" y="622" width="132" height="38" rx="6" fill="#f7f9fb" stroke="#aab6c2"/>
+  <text x="105" y="646" fill="#17324d" font-family="Arial, sans-serif" font-size="14" font-weight="700">Thêm rule</text>
+  <rect x="226" y="622" width="132" height="38" rx="6" fill="#2271b1"/>
+  <text x="259" y="646" fill="#ffffff" font-family="Arial, sans-serif" font-size="14" font-weight="700">Lưu cấu hình</text>
+</svg>
