@@ -31,6 +31,7 @@ function home_url( $path = '' ) { return '/' . ltrim( (string) $path, '/' ); }
 function get_permalink( $post_id ) { return '/du-an-' . (int) $post_id . '/'; }
 function is_admin() { return false; }
 function wp_doing_ajax() { return false; }
+function get_theme_mod( $name ) { return 'custom_logo' === $name ? 123 : false; }
 function get_queried_object_id() {
 	global $pmm_test_current_id;
 
@@ -84,6 +85,33 @@ pmm_assert_same(
 	'<a href="/blanca-city/"><img src="/uploads/blanca-logo.svg" alt="Site"></a>',
 	$filtered_logo,
 	'Custom logo HTML should receive the rule logo URL and logo link.'
+);
+
+pmm_assert_same(
+	'/uploads/blanca-logo.svg',
+	pmm_filter_theme_logo_url( '/uploads/default-logo.png' ),
+	'GeneratePress logo URL filters should receive the rule logo URL, including sticky/navigation logo filters.'
+);
+
+pmm_assert_same(
+	false,
+	pmm_filter_logo_image_srcset(
+		array(
+			'/uploads/default-logo.png 1x',
+			'/uploads/default-logo-retina.png 2x',
+		),
+		array( 800, 800 ),
+		'/uploads/default-logo.png',
+		array(),
+		123
+	),
+	'Custom logo srcset should be disabled when a rule logo URL is active.'
+);
+
+pmm_assert_same(
+	'100vw',
+	pmm_filter_logo_image_sizes( '100vw', array( 800, 800 ), '/uploads/other.png', array(), 456 ),
+	'Non-logo image sizes should not be changed.'
 );
 
 $single_post_rule = pmm_sanitize_rule(

@@ -8,7 +8,7 @@ Plugin được viết theo hướng dễ mở rộng bằng vibe code: phần r
 
 ## Thông tin
 
-- Version: `1.2.0`
+- Version: `1.2.1`
 - Author: PDL Solutions (Phú Digital)
 - Website: https://pdl.vn
 - License: GPL-2.0-or-later

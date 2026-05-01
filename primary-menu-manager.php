@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Primary Menu Manager
  * Description: Manage conditional primary menu items and header logo/link for landing pages without changing the theme header layout or mobile behavior.
- * Version: 1.2.0
+ * Version: 1.2.1
  * Author: PDL Solutions (Phú Digital)
  * Author URI: https://pdl.vn
  * Plugin URI: https://pdl.vn
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'PMM_VERSION', '1.2.0' );
+define( 'PMM_VERSION', '1.2.1' );
 define( 'PMM_OPTION', 'pmm_rules' );
 define( 'PMM_AUTHOR_NAME', 'PDL Solutions (Phú Digital)' );
 define( 'PMM_AUTHOR_URL', 'https://pdl.vn' );
@@ -29,7 +29,10 @@ add_filter( 'get_custom_logo', 'pmm_filter_custom_logo_html', 20, 2 );
 add_filter( 'generate_logo', 'pmm_filter_theme_logo_url', 20 );
 add_filter( 'generate_navigation_logo', 'pmm_filter_theme_logo_url', 20 );
 add_filter( 'generate_mobile_header_logo', 'pmm_filter_theme_logo_url', 20 );
+add_filter( 'generate_sticky_navigation_logo', 'pmm_filter_theme_logo_url', 20 );
 add_filter( 'generate_logo_href', 'pmm_filter_theme_logo_link', 20 );
+add_filter( 'wp_get_attachment_image_srcset', 'pmm_filter_logo_image_srcset', 20, 5 );
+add_filter( 'wp_get_attachment_image_sizes', 'pmm_filter_logo_image_sizes', 20, 5 );
 
 function pmm_register_admin_page() {
 	add_options_page(
@@ -482,6 +485,32 @@ function pmm_filter_theme_logo_link( $url ) {
 	$config = pmm_get_current_logo_config();
 
 	return $config && ! empty( $config['logo_link_url'] ) ? $config['logo_link_url'] : $url;
+}
+
+function pmm_filter_logo_image_srcset( $sources, $size_array, $image_src, $image_meta, $attachment_id ) {
+	if ( ! pmm_should_strip_logo_responsive_attribute( $attachment_id ) ) {
+		return $sources;
+	}
+
+	return false;
+}
+
+function pmm_filter_logo_image_sizes( $sizes, $size, $image_src, $image_meta, $attachment_id ) {
+	if ( ! pmm_should_strip_logo_responsive_attribute( $attachment_id ) ) {
+		return $sizes;
+	}
+
+	return false;
+}
+
+function pmm_should_strip_logo_responsive_attribute( $attachment_id ) {
+	$config = pmm_get_current_logo_config();
+
+	if ( ! $config || empty( $config['logo_url'] ) ) {
+		return false;
+	}
+
+	return (int) $attachment_id === (int) get_theme_mod( 'custom_logo' );
 }
 
 function pmm_build_menu_item( $item, $index, $menu_id ) {
