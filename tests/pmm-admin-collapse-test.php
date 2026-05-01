@@ -46,10 +46,14 @@ function pmm_assert_not_contains( $needle, $haystack, $message ) {
 
 $enabled_classes = pmm_get_rule_card_classes( array( 'enabled' => true ) );
 $disabled_classes = pmm_get_rule_card_classes( array( 'enabled' => false ) );
+$plugin_source = file_get_contents( dirname( __DIR__ ) . '/primary-menu-manager.php' );
 
 pmm_assert_contains( 'is-collapsed', $enabled_classes, 'Enabled rule cards should start collapsed by default.' );
 pmm_assert_not_contains( 'is-disabled', $enabled_classes, 'Enabled rule cards should not include the disabled class.' );
 pmm_assert_contains( 'is-collapsed', $disabled_classes, 'Disabled rule cards should also start collapsed by default.' );
 pmm_assert_contains( 'is-disabled', $disabled_classes, 'Disabled rule cards should include the disabled class.' );
+pmm_assert_contains( 'grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.18fr);', $plugin_source, 'Rule layout should let the right column shrink instead of clipping.' );
+pmm_assert_contains( '@media (max-width: 1280px)', $plugin_source, 'Admin UI should collapse before medium WordPress admin screens clip the right column.' );
+pmm_assert_contains( 'grid-template-columns: 22px minmax(120px, 0.9fr) minmax(140px, 1.25fr) minmax(100px, 0.75fr) 76px minmax(76px, 0.55fr) 32px;', $plugin_source, 'Menu item rows should use shrinkable columns.' );
 
 echo "pmm-admin-collapse-test passed\n";
